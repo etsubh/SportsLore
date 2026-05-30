@@ -3,6 +3,7 @@
 import { getCoverImage } from "@/lib/reel-images";
 import ReelSlideImage from "./ReelSlideImage";
 import { ReelStory } from "@/lib/reels";
+import { startSpeechFromGesture } from "./useSpeechNarration";
 
 interface ReelStoryCardProps {
   story: ReelStory;
@@ -13,9 +14,15 @@ interface ReelStoryCardProps {
 export default function ReelStoryCard({ story, index, onSelect }: ReelStoryCardProps) {
   const coverSrc = getCoverImage(story.id);
 
+  const handleClick = () => {
+    // Must be first — Chrome requires speak() in the same synchronous click handler
+    startSpeechFromGesture(story.slides[0].caption);
+    onSelect();
+  };
+
   return (
     <button
-      onClick={onSelect}
+      onClick={handleClick}
       className={`animate-fade-in-up animate-delay-${Math.min((index + 1) * 100, 500)} group relative aspect-[9/16] overflow-hidden rounded-2xl opacity-0 shadow-card transition-transform hover:scale-[1.03] active:scale-[0.97]`}
     >
       <div className={`absolute inset-0 bg-gradient-to-br ${story.gradient}`} />

@@ -9,7 +9,7 @@ import Button from "@/components/Button";
 import ReelsGrid from "@/components/reels/ReelsGrid";
 import StoryViewer from "@/components/reels/StoryViewer";
 import StoriesToggle, { StoriesTab } from "@/components/stories/StoriesToggle";
-import { startSpeechFromGesture, stopSpeech } from "@/components/reels/useSpeechNarration";
+import { stopSpeech } from "@/components/reels/useSpeechNarration";
 
 function LoreDetail({
   story,
@@ -67,7 +67,9 @@ function LoreDetail({
 
 function LoreContent() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<StoriesTab>("read");
+  const [tab, setTab] = useState<StoriesTab>(() =>
+    searchParams.get("tab") === "reels" ? "reels" : "read"
+  );
   const [selectedStory, setSelectedStory] = useState<LoreStory | null>(null);
   const [activeReel, setActiveReel] = useState<ReelStory | null>(null);
   const [activeReelIndex, setActiveReelIndex] = useState(0);
@@ -95,7 +97,6 @@ function LoreContent() {
   }, [searchParams]);
 
   const openReel = (story: ReelStory) => {
-    startSpeechFromGesture(story.slides[0].caption);
     setActiveReel(story);
     setActiveReelIndex(REEL_STORIES.indexOf(story));
   };

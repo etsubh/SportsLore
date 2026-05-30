@@ -165,16 +165,14 @@ export default function StoryViewer({
 
     const isStoryChange =
       prevStoryIdRef.current !== null && prevStoryIdRef.current !== story.id;
-    const isFirstOpen = prevStoryIdRef.current === null;
     prevStoryIdRef.current = story.id;
 
     const firstCaption = story.slides[0]?.caption;
     if (!firstCaption || !narrationEnabledRef.current) return;
 
-    if (isStoryChange) {
-      speak(firstCaption);
-    } else if (isFirstOpen && !speechController.isActive()) {
-      // Deep link — no card-click gesture, try speak anyway
+    // Slide 0 narration starts from the reel card click (user gesture).
+    // Only auto-speak on story change (swiping between reels).
+    if (isStoryChange && !speechController.isActive()) {
       speak(firstCaption);
     }
   }, [story.id, story.slides, speak]);

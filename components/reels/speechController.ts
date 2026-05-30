@@ -15,6 +15,12 @@ function splitIntoPhrases(text: string): string[] {
     .filter(Boolean);
 }
 
+/** Chrome/Chromium speechSynthesis is unreliable — use streamed audio instead. */
+function shouldUseAudioEngine(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Chrome|Chromium|Edg\//.test(navigator.userAgent);
+}
+
 function pickBestVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   const english = voices.filter((v) => v.lang.startsWith("en"));
   const ranked = [
@@ -38,9 +44,15 @@ class SpeechController {
   private onErrorCallback: ((error: string) => void) | null = null;
   private rate = 0.9;
   private resumeInterval: ReturnType<typeof setInterval> | null = null;
+  private audio: HTMLAudioElement | null = null;
+  private readonly audioEngine = shouldUseAudioEngine();
+  /** Set after a user gesture successfully starts audio — unlocks later slides. */
+  private audioUnlocked = false;
 
   constructor() {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
+    if (this.audioEngine) {
+      this.voiceName = "Narrator";
+    } else if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.addEventListener("voiceschanged", () => this.loadVoices());
       this.loadVoices();
     }
@@ -78,6 +90,7 @@ class SpeechController {
   }
 
   loadVoices() {
+    if (this.audioEngine) return;
     const synth = this.synth();
     if (!synth) return;
     const voices = synth.getVoices();
@@ -98,6 +111,7 @@ class SpeechController {
     this.generation += 1;
     this.queue = [];
     this.queueIndex = 0;
+    this.stopAudio();
     const synth = this.synth();
     if (synth) synth.cancel();
     this.isSpeaking = false;
@@ -111,6 +125,16 @@ class SpeechController {
     this.emit();
   }
 
+  private stopAudio() {
+    if (!this.audio) return;
+    this.audio.onended = null;
+    this.audio.onerror = null;
+    this.audio.onplaying = null;
+    this.audio.pause();
+    this.audio.removeAttribute("src");
+    this.audio.load();
+  }
+
   private stopResumeInterval() {
     if (this.resumeInterval) {
       clearInterval(this.resumeInterval);
@@ -122,41 +146,114 @@ class SpeechController {
     this.stopResumeInterval();
     this.resumeInterval = setInterval(() => {
       const synth = this.synth();
-      if (synth?.speaking) synth.resume();
-    }, 200);
+      if (synth?.speaking || synth?.pending) synth.resume();
+    }, 250);
   }
 
-  /** Call synchronously inside a click/tap handler. */
+  /** Call synchronously as the first line of a click/tap handler. */
   startFromGesture(text: string) {
-    const synth = this.synth();
-    if (!synth) return;
-    synth.cancel();
-    synth.resume();
+    this.audioUnlocked = true;
     this.beginSpeaking(text);
   }
 
   speak(text: string) {
-    const synth = this.synth();
-    if (!synth) return;
-    if (synth.speaking) synth.cancel();
+    if (this.audioEngine && !this.audioUnlocked) return;
     this.beginSpeaking(text);
   }
 
   private beginSpeaking(text: string) {
+    const normalized = text.replace(/—/g, ", ").replace(/\.\.\./g, ".");
+    const phrases = this.audioEngine ? [normalized] : splitIntoPhrases(normalized);
+    if (phrases.length === 0) return;
+
+    // Avoid canceling in-progress playback of the same slide
+    if (
+      this.isPlaying &&
+      this.queue.length === phrases.length &&
+      this.queue[0] === phrases[0] &&
+      this.queueIndex === 0
+    ) {
+      return;
+    }
+
     this.generation += 1;
     const generation = this.generation;
-
-    const phrases = splitIntoPhrases(text);
-    if (phrases.length === 0) return;
+    this.stopAudio();
 
     this.queue = phrases;
     this.queueIndex = 0;
     this.isPlaying = true;
     this.emit();
 
-    this.loadVoices();
-    this.speakNextPhrase(generation);
-    this.startResumeInterval();
+    if (this.audioEngine) {
+      this.playNextAudio(generation);
+    } else {
+      this.loadVoices();
+      this.speakNextPhrase(generation);
+      this.startResumeInterval();
+    }
+  }
+
+  private getAudio(): HTMLAudioElement {
+    if (!this.audio) {
+      this.audio = new Audio();
+      this.audio.preload = "auto";
+    }
+    return this.audio;
+  }
+
+  private playNextAudio(generation: number) {
+    if (generation !== this.generation) return;
+
+    if (this.queueIndex >= this.queue.length) {
+      this.isSpeaking = false;
+      this.emit();
+      this.onEndCallback?.();
+      return;
+    }
+
+    const phrase = this.queue[this.queueIndex];
+    const audio = this.getAudio();
+
+    // Set src and call play() synchronously
+    audio.src = `/api/tts?text=${encodeURIComponent(phrase)}`;
+    audio.playbackRate = this.rate;
+
+    audio.onplaying = () => {
+      if (generation !== this.generation) return;
+      this.isSpeaking = true;
+      this.audioUnlocked = true;
+      this.emit();
+    };
+
+    audio.onended = () => {
+      if (generation !== this.generation) return;
+      this.queueIndex += 1;
+      if (this.queueIndex < this.queue.length) {
+        this.playNextAudio(generation);
+      } else {
+        this.isSpeaking = false;
+        this.emit();
+        this.onEndCallback?.();
+      }
+    };
+
+    audio.onerror = () => {
+      if (generation !== this.generation) return;
+      this.failAudio("audio-error");
+    };
+
+    audio.play().catch(() => {
+      if (generation !== this.generation) return;
+      this.failAudio("audio-blocked");
+    });
+  }
+
+  private failAudio(error: string) {
+    this.isSpeaking = false;
+    this.isPlaying = false;
+    this.emit();
+    this.onErrorCallback?.(error);
   }
 
   private speakNextPhrase(generation: number) {
@@ -183,7 +280,7 @@ class SpeechController {
         if (generation !== this.generation) return;
         synth.removeEventListener("voiceschanged", onVoices);
         this.speakNextPhrase(generation);
-      }, 300);
+      }, 500);
       return;
     }
 
@@ -217,13 +314,6 @@ class SpeechController {
     utterance.onerror = (event) => {
       if (generation !== this.generation) return;
       if (event.error === "canceled" || event.error === "interrupted") return;
-
-      if (this.voice && this.queueIndex === 0) {
-        this.voice = null;
-        this.speakNextPhrase(generation);
-        return;
-      }
-
       this.isSpeaking = false;
       this.isPlaying = false;
       this.stopResumeInterval();
@@ -237,6 +327,10 @@ class SpeechController {
 
   setPlaying(playing: boolean) {
     this.isPlaying = playing;
+    if (this.audioEngine && this.audio) {
+      if (!playing) this.audio.pause();
+      else this.audio.play().catch(() => undefined);
+    }
     this.emit();
   }
 }
