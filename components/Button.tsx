@@ -21,14 +21,15 @@ export default function Button({
   type = "button",
 }: ButtonProps) {
   const baseStyles =
-    "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 sm:px-8 sm:py-3.5 sm:text-base";
+    "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition-all duration-300 ease-out sm:px-8 sm:py-3.5 sm:text-base";
 
   const variants = {
     primary:
-      "bg-gradient-to-r from-bestie-pink to-bestie-purple text-white shadow-lg shadow-bestie-purple/30 hover:scale-105 hover:shadow-xl hover:shadow-bestie-purple/40 active:scale-95",
+      "bg-bestie-purple text-white shadow-button hover:-translate-y-0.5 hover:scale-[1.03] hover:bg-bestie-purple-dark hover:shadow-lg active:translate-y-0 active:scale-[0.97]",
     secondary:
-      "border border-white/20 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 hover:scale-105 active:scale-95",
-    ghost: "text-white/70 hover:text-white hover:bg-white/10",
+      "border border-bestie-border bg-white text-bestie-text shadow-card hover:-translate-y-0.5 hover:scale-[1.02] hover:border-bestie-purple/40 hover:bg-bestie-purple-light/40 hover:shadow-soft active:translate-y-0 active:scale-[0.97]",
+    ghost:
+      "text-bestie-muted hover:-translate-y-0.5 hover:scale-[1.02] hover:bg-bestie-purple-light/50 hover:text-bestie-purple active:translate-y-0 active:scale-[0.97]",
   };
 
   const disabledStyles = disabled ? "opacity-50 cursor-not-allowed hover:scale-100" : "";

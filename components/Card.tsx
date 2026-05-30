@@ -9,7 +9,7 @@ interface CardProps {
 
 export default function Card({ children, className = "", onClick, hover = false }: CardProps) {
   const hoverStyles = hover
-    ? "cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-white/20 hover:shadow-lg hover:shadow-bestie-purple/10 active:scale-[0.98]"
+    ? "cursor-pointer transition-all duration-200 hover:border-bestie-purple/20 hover:shadow-soft active:scale-[0.99]"
     : "";
 
   return (
@@ -24,7 +24,7 @@ export default function Card({ children, className = "", onClick, hover = false 
             }
           : undefined
       }
-      className={`rounded-2xl border border-white/10 bg-bestie-card/80 p-5 backdrop-blur-sm sm:p-6 ${hoverStyles} ${className}`}
+      className={`rounded-2xl border border-bestie-border bg-bestie-card p-5 shadow-card sm:p-6 ${hoverStyles} ${className}`}
     >
       {children}
     </div>

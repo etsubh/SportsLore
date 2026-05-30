@@ -31,16 +31,14 @@ export default function QuizPage() {
   };
 
   const handleBack = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion((prev) => prev - 1);
-    }
+    if (currentQuestion > 0) setCurrentQuestion((prev) => prev - 1);
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+    <div className="mx-auto max-w-2xl px-5 py-8 sm:px-8 sm:py-12">
       <div className="mb-6 text-center animate-fade-in">
-        <p className="mb-1 text-sm font-medium text-bestie-pink">Sports Personality Quiz</p>
-        <h1 className="text-2xl font-bold sm:text-3xl">What&apos;s your sports vibe?</h1>
+        <p className="mb-1 text-sm font-medium text-bestie-purple">Sports Personality Quiz</p>
+        <h1 className="heading-serif text-2xl sm:text-3xl">What&apos;s your sports vibe?</h1>
       </div>
 
       <div className="mb-8 animate-fade-in">
@@ -48,10 +46,10 @@ export default function QuizPage() {
       </div>
 
       <Card className="animate-fade-in-up mb-8">
-        <p className="mb-1 text-sm font-medium text-bestie-pink">Question {question.id}</p>
-        <h2 className="text-xl font-bold text-white sm:text-2xl">{question.question}</h2>
+        <p className="mb-1 text-sm font-medium text-bestie-purple">Question {question.id}</p>
+        <h2 className="heading-serif text-xl sm:text-2xl">{question.question}</h2>
         {"subtitle" in question && (
-          <p className="mt-2 text-sm text-white/50">{question.subtitle}</p>
+          <p className="mt-2 text-sm text-bestie-muted">{question.subtitle}</p>
         )}
       </Card>
 
@@ -62,10 +60,10 @@ export default function QuizPage() {
             <button
               key={option}
               onClick={() => handleSelect(option)}
-              className={`animate-slide-in w-full rounded-2xl border p-4 text-left transition-all duration-300 sm:p-5 ${
+              className={`animate-slide-in w-full rounded-2xl border p-4 text-left transition-all duration-200 sm:p-5 ${
                 isSelected
-                  ? "border-bestie-purple bg-bestie-purple/20 shadow-lg shadow-bestie-purple/20"
-                  : "border-white/10 bg-bestie-card/60 hover:border-white/20 hover:bg-white/5"
+                  ? "border-bestie-purple bg-bestie-purple-light shadow-soft"
+                  : "border-bestie-border bg-white shadow-card hover:border-bestie-purple/20"
               }`}
               style={{ animationDelay: `${index * 75}ms` }}
             >
@@ -74,12 +72,12 @@ export default function QuizPage() {
                   className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs transition-all ${
                     isSelected
                       ? "border-bestie-purple bg-bestie-purple text-white"
-                      : "border-white/30"
+                      : "border-bestie-border"
                   }`}
                 >
                   {isSelected && "✓"}
                 </span>
-                <span className="font-medium text-white">{option}</span>
+                <span className="font-medium text-bestie-text">{option}</span>
               </div>
             </button>
           );
@@ -87,16 +85,11 @@ export default function QuizPage() {
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <Button
-          variant="ghost"
-          onClick={handleBack}
-          disabled={currentQuestion === 0}
-          className={currentQuestion === 0 ? "invisible" : ""}
-        >
+        <Button variant="ghost" onClick={handleBack} disabled={currentQuestion === 0} className={currentQuestion === 0 ? "invisible" : ""}>
           ← Back
         </Button>
         <Button onClick={handleNext} disabled={!selectedAnswer}>
-          {isLastQuestion ? "Get My Starter Pack 🎁" : "Next →"}
+          {isLastQuestion ? "Get My Starter Pack" : "Next →"}
         </Button>
       </div>
     </div>
